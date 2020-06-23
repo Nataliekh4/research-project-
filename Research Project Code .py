@@ -60,8 +60,7 @@ def main():
     n = open(r"C:\Users\Admin\Desktop\movie_times1.txt",'w')
     print(summerdays_time,file=n)
     
-    #does the first 10 words 
-    #x = 10
+    
     print(list(zip(summerdays_words, summedSummerdays, summerdays_time_start, summerdays_time_duration)))
     
     #saves file 
