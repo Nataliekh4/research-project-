@@ -17,8 +17,12 @@ import numpy as np
 
 
 def openBook():
-    return open(r'C:\Users\Admin\Downloads\Word_timing 1\florin_500days_words_and_time_dtw.json')
+    return open(r'C:\Users\Admin\Desktop\Research Project\500_days_of_summer.json')
 
+with open(r'C:\Users\Admin\Desktop\Research Project\500_days_of_summer.json') as f:
+  data = json.load(f)
+  print(data)
+  
 
 def syllables(word):
     SSP = SyllableTokenizer()
@@ -39,16 +43,19 @@ def acousticArrayForWord(syllables):
 def main():
     book = openBook()
     summerdays = json.load(book)
-    summerdays_words = list(map(lambda occurrence : occurrence[0], summerdays))
-    summerdays_time = list(map(lambda occurrence : occurrence[1], summerdays))
+    summerdays_words = []
+    summerdays_time = []
+    for row in summerdays:
+        summerdays_time.append(acousticArrayForWord(syllables(row[0])))
 
     
     summerdays_syllables = list(map(syllables, summerdays_words))
-    summedSummerdays = list(map(lambda syllables : acousticArrayForWord(syllables) ,summerdays_syllables))
+    summedSummerdays = list(map(lambda syllables : acousticArrayForWord(syllables), summerdays_syllables))
     
     
     summerdays_time_start= summerdays_time[::2]
     summerdays_time_duration= summerdays_time[1::2]
+
 
    
     g = open(r"C:\Users\Admin\Desktop\summerdays_syllables.txt",'w')
