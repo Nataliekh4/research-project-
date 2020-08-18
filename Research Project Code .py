@@ -5,77 +5,74 @@ Created on Sun May 10 16:52:19 2020
 @author: Admin
 """
 
-from nltk.tokenize import SyllableTokenizer
-from nltk import word_tokenize
 import json
 import os
 import panphon
 import numpy as np
-
-
+from collections import Counter 
+import eng_to_ipa as ipa
 
 
 
 def openBook():
-    return open(r'C:\Users\Admin\Desktop\Research Project\500_days_of_summer.json')
+    return open(r'C:\Users\Admin\Desktop\Research Project\12_years_a_slave.json')
 
-with open(r'C:\Users\Admin\Desktop\Research Project\500_days_of_summer.json') as f:
-  data = json.load(f)
-  print(data)
-  
+def ipaConvert(word):
+    return ipa.convert(word)
 
-def syllables(word):
-    SSP = SyllableTokenizer()
-    return SSP.tokenize(word)
-
-def acousticArrayValues(syllable):
-    properties = ['son', 'cons', 'cont', 'delrel', 'lat', 'nas', 'strid', 'voi', 'sg', 'cg', 'ant', 'cor', 'distr', 'lab', 'hi', 'lo', 'back', 'round', 'velaric', 'tense', 'long']
+def acousticArrayValues(word):
+    properties = ['syl', 'son', 'cons', 'cont', 'delrel', 'lat', 'nas', 'strid', 'voi', 'sg', 'cg', 'ant', 'cor', 'distr', 'lab', 'hi', 'lo', 'back', 'round', 'velaric', 'tense', 'long']
     ft=panphon.FeatureTable()
-    acoustic_array = ft.word_array(properties, syllable)
-    return np.sum(acoustic_array, axis=0)
+    acoustic_array = ft.word_array(properties, word)
+    return np.sum(acoustic_array > 0, axis=0)
 
-def acousticArraySum(syllables):
-    return list(map(lambda syllable : acousticArrayValues(syllable), syllables))
+def acousticArrayValuesNeg(word):
+    properties = ['syl', 'son', 'cons', 'cont', 'delrel', 'lat', 'nas', 'strid', 'voi', 'sg', 'cg', 'ant', 'cor', 'distr', 'lab', 'hi', 'lo', 'back', 'round', 'velaric', 'tense', 'long']
+    ft=panphon.FeatureTable()
+    acoustic_array = ft.word_array(properties, word)
+    return ((acoustic_array<0)*acoustic_array).sum(axis=0) 
 
-def acousticArrayForWord(syllables): 
-    return np.sum(acousticArraySum(syllables), axis=0)
+def phonemeCount(word):
+    properties = ['syl', 'son', 'cons', 'cont', 'delrel', 'lat', 'nas', 'strid', 'voi', 'sg', 'cg', 'ant', 'cor', 'distr', 'lab', 'hi', 'lo', 'back', 'round', 'velaric', 'tense', 'long']
+    ft=panphon.FeatureTable()
+    acoustic_array = ft.word_array(properties, word)
+    return (acoustic_array.shape[0])
+
+def generateRow(occurrence):
+    word = occurrence['subtitle']
+    start_time = occurrence['start_time_new']
+    end_time = occurrence['end_time_new']
+    interval = occurrence['interval_new'] 
+    summedAcousticArray = acousticArrayValues(ipaConvert(word)).tolist()
+    summedAcousticArrayNeg = acousticArrayValuesNeg(ipaConvert(word)).tolist()
+    positive_values_count = len(list(filter(lambda x : x > 0, summedAcousticArray)))
+    num_0s = summedAcousticArray.count(0)
+    phonemecounts = phonemeCount(ipaConvert(word))
+
+
+    
+    list_of_values = summedAcousticArrayNeg + summedAcousticArray + [positive_values_count] + [phonemecounts] + [num_0s]
+    return str(start_time) + "*" + ','.join([str(i) for i in list_of_values]) + ":" + str(interval)
+    
 
 def main():
     book = openBook()
     summerdays = json.load(book)
-    summerdays_words = []
-    summerdays_time = []
-    for row in summerdays:
-        summerdays_time.append(acousticArrayForWord(syllables(row[0])))
+    
+    summerdays_rows = list(map(lambda occurrence : generateRow(occurrence), summerdays))
+    
+ 
+    
 
-    
-    summerdays_syllables = list(map(syllables, summerdays_words))
-    summedSummerdays = list(map(lambda syllables : acousticArrayForWord(syllables), summerdays_syllables))
-    
-    
-    summerdays_time_start= summerdays_time[::2]
-    summerdays_time_duration= summerdays_time[1::2]
-
+     
+    np.savetxt('12_years_a_slave', summerdays_rows, fmt='%s')
+   
 
    
-    g = open(r"C:\Users\Admin\Desktop\summerdays_syllables.txt",'w')
-    print(summerdays_syllables,file=g)
-
-    f = open(r"C:\Users\Admin\Desktop\movie_words1.txt",'w')
-    print(summerdays_words,file=f)
-    
-    n = open(r"C:\Users\Admin\Desktop\movie_times1.txt",'w')
-    print(summerdays_time,file=n)
-    
-    
-    print(list(zip(summerdays_words, summedSummerdays, summerdays_time_start, summerdays_time_duration)))
-    
-    #saves file 
-    np.savetxt('results.csv', [p for p in zip(summerdays_words, summedSummerdays, summerdays_time_start, summerdays_time_duration)], delimiter=',', fmt='%s')
-
-    
 
     
 if __name__ == "__main__":
     main()
+    
+
     
